@@ -4,7 +4,7 @@ package wopt
 import "core:mem"
 import "core:slice"
 
-import B "../base"
+import B "base"
 
 // Types
 

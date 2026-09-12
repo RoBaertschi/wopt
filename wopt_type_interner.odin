@@ -10,7 +10,7 @@ import "core:sync"
 import "core:slice"
 import "core:hash/xxhash"
 
-import B "../base"
+import B "base"
 
 // Based on the principles from the string interner from the odin compiler: https://github.com/odin-lang/Odin/blob/master/src/string_interner.cpp
 

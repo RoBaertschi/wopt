@@ -5,7 +5,7 @@ import "core:sync"
 import "core:mem"
 import "core:container/xar"
 
-import B "../base"
+import B "base"
 
 // this is per thread and is not safe to be shared across threads, each thread should have exactly one of them
 Thread_Build_Context :: struct {

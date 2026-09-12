@@ -1,7 +1,7 @@
 #+vet explicit-allocators
 package wopt
 
-import B "../base"
+import B "base"
 
 // An Id to refer to a specific ABI.
 //

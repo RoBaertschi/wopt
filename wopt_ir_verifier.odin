@@ -6,7 +6,7 @@ import "core:mem"
 import "core:strings"
 import "base:runtime"
 
-import B "../base"
+import B "base"
 
 SSA_Verify_Error_Callback :: #type proc "c"(
 	tbctx:       ^Thread_Build_Context, // used to indentify which builder created the diagnostic, treat as read-only

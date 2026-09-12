@@ -7,7 +7,7 @@ import "core:strings"
 import "core:fmt"
 import "core:container/xar"
 
-import B "../base"
+import B "base"
 
 // Functions
 
