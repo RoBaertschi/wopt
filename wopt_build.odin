@@ -59,7 +59,8 @@ build_function_begin :: proc(tbctx: ^Thread_Build_Context, function_id: Function
 	function := function_get_ptr(tbctx.module, function_id)
 	old_flags := sync.atomic_or_explicit(&function.flags, Function_Flags{ ._In_Progress }, .Acquire)
 	assert(._In_Progress not_in old_flags, "function_id is marked as in progress, this is invalid API usage, only one thread can build a function at a time", loc = loc)
-	assert(._Build_Done not_in old_flags, "function_id is marked as build, this is invalid API usage, a function can be build only one time")
+	assert(._Build_Done not_in old_flags, "function_id is marked as build, this is invalid API usage, a function can be build only once", loc = loc)
+	assert(._Compile_Done not_in old_flags, "function_id is marked as compiled, this is invalid API usage, a function can't be build after being compiled", loc = loc)
 	tbctx.current_function_id = function_id
 	tbctx.current_function    = function
 

@@ -21,6 +21,7 @@ Function_Flag :: enum {
 	// Internal flags
 	_In_Progress = 16, // TODO(robin): make this an extra state enum?
 	_Build_Done,
+	_Compile_Done,
 }
 
 Function_Flags :: bit_set[Function_Flag; u32]
