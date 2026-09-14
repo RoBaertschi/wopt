@@ -1,6 +1,7 @@
 #+vet explicit-allocators
 package wopt
 
+import "core:sync"
 import "core:mem"
 import "core:os"
 import "core:strings"
@@ -125,11 +126,25 @@ _abi_get :: proc(m: ^Module, abi_id: ABI_Id) -> (abi: ABI) {
 
 // Module
 
+Module_Permanent_Arena :: struct {
+	next:  ^Module_Permanent_Arena,
+	arena: ^B.Arena,
+}
+
+_module_add_permanent_arena :: proc(m: ^Module, arena: ^B.Arena) {
+	node := B.arena_push(arena, Module_Permanent_Arena)
+	node.arena = arena
+
+	node.next = sync.atomic_exchange(&m.permanent_arenas, node)
+}
+
 Module :: struct {
 	arena:    ^B.Arena,
 	interner: strings.Intern,
 	target:   Target,
 	frozen:   bool,
+
+	permanent_arenas: ^Module_Permanent_Arena,
 
 	// Types
 	type_interner:       ^Type_Interner,
