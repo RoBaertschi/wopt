@@ -126,16 +126,16 @@ _abi_get :: proc(m: ^Module, abi_id: ABI_Id) -> (abi: ABI) {
 
 // Module
 
-Module_Permanent_Arena :: struct {
-	next:  ^Module_Permanent_Arena,
-	arena: ^B.Arena,
+Module_Thread_Build_Context_Node :: struct {
+	next:  ^Module_Thread_Build_Context_Node,
+	tbctx: ^Thread_Build_Context,
 }
 
-_module_add_permanent_arena :: proc(m: ^Module, arena: ^B.Arena) {
-	node := B.arena_push(arena, Module_Permanent_Arena)
-	node.arena = arena
+_module_add_thread_build_context :: proc(m: ^Module, tbctx: ^Thread_Build_Context) {
+	node := B.arena_push(tbctx.permanent_arena, Module_Thread_Build_Context_Node)
+	node.tbctx = tbctx
 
-	node.next = sync.atomic_exchange(&m.permanent_arenas, node)
+	node.next = sync.atomic_exchange_explicit(&m.thread_build_contexts, node, .Relaxed)
 }
 
 Module :: struct {
@@ -144,7 +144,7 @@ Module :: struct {
 	target:   Target,
 	frozen:   bool,
 
-	permanent_arenas: ^Module_Permanent_Arena,
+	thread_build_contexts: ^Module_Thread_Build_Context_Node,
 
 	// Types
 	type_interner:       ^Type_Interner,
@@ -185,6 +185,20 @@ module_new :: proc() -> (m: ^Module) {
 }
 
 module_free :: proc(m: ^Module) {
+	current := m.thread_build_contexts
+	next: ^Module_Thread_Build_Context_Node
+
+	for current != nil {
+		next = current.next
+
+		if current.tbctx != nil {
+			B.arena_destroy(current.tbctx.build_arena)
+			B.arena_destroy(current.tbctx.permanent_arena)
+		}
+
+		current = next
+	}
+
 	type_interner_free(m.type_interner)
 	strings.intern_destroy(&m.interner)
 	B.arena_destroy(m.arena)
@@ -224,7 +238,6 @@ main :: proc() {
   ensure(module_is_frozen(m))
 
   tbctx := thread_build_context_new(m)
-  defer thread_build_context_free(tbctx)
 
   {
     build_function_begin(tbctx, func_id)

@@ -96,8 +96,6 @@ Wopt_Thread_Build_Context wopt_thread_build_context_new(
     Wopt_SSA_Verify_Error_Callback error_callback,
     void *user_data);
 
-void wopt_thread_build_context_free(Wopt_Thread_Build_Context tbctx);
-
 void wopt_build_function_begin(
     Wopt_Thread_Build_Context tbctx,
     Wopt_Function_Id function_id);

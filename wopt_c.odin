@@ -92,12 +92,6 @@ wopt_thread_build_context_new :: proc "c"(
 }
 
 @export
-wopt_thread_build_context_free :: proc "c"(tbctx: ^Thread_Build_Context) {
-	context = runtime.default_context()
-	thread_build_context_free(tbctx)
-}
-
-@export
 wopt_build_function_begin :: proc "c"(tbctx: ^Thread_Build_Context, function_id: Function_Id) {
 	context = runtime.default_context()
 	build_function_begin(tbctx, function_id)

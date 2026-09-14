@@ -7,7 +7,7 @@ import "core:container/xar"
 
 import B "base"
 
-// this is per thread and is not safe to be shared across threads, each thread should have exactly one of them
+// this is per thread and is not safe to be shared across threads
 Thread_Build_Context :: struct {
 	module:          ^Module,
 	allocator:       mem.Allocator,
@@ -31,6 +31,11 @@ Thread_Build_Context :: struct {
 	start_block:      Block_Id,
 }
 
+// Creates a new `Thread_Build_Context`.
+//
+// You do not need and cannot destroy this context, it needs to be retained until
+// the end of the module and will be freed when you free the module. Note that
+// these context's are not free, you should ideally only have one per thread.
 thread_build_context_new :: proc(
 	m:              ^Module,
 	error_callback := ssa_verify_error_callback_panic,
@@ -45,12 +50,9 @@ thread_build_context_new :: proc(
 	tbctx.build_arena    = B.arena_alloc()
 	tbctx.allocator      = B.arena_allocator(tbctx.build_arena)
 
-	return
-}
+	_module_add_thread_build_context(m, tbctx)
 
-thread_build_context_free :: proc(tbctx: ^Thread_Build_Context) {
-	B.arena_destroy(tbctx.build_arena)
-	B.arena_destroy(tbctx.permanent_arena)
+	return
 }
 
 build_function_begin :: proc(tbctx: ^Thread_Build_Context, function_id: Function_Id, loc := #caller_location) {
@@ -197,8 +199,7 @@ tbctx_test_lifecycle :: proc(t: ^testing.T) {
 	m := module_new()
 	defer module_free(m)
 
-	tbctx := thread_build_context_new(m)
-	defer thread_build_context_free(tbctx)
+	_ = thread_build_context_new(m)
 }
 
 @test
@@ -214,7 +215,6 @@ tbctx_test_basic_example :: proc(t: ^testing.T) {
   ensure(module_is_frozen(m))
 
   tbctx := thread_build_context_new(m)
-  defer thread_build_context_free(tbctx)
 
   {
     build_function_begin(tbctx, func_id)
