@@ -21,8 +21,9 @@ _compile_abi_lower :: proc(tcc: ^Thread_Compile_Context) {
 	result.config = abi.procedure(abi.user_data, result.parameters, result.result)
 
 	tcc.function.abi_result = result
+	tcc.function.register_info = _register_information_from_abi_result(tcc.permanent_arena, result^)
 
-	// TODO(robin): validate abi result
+	// TODO(robin, 20260915-170105): validate abi result
 
 	for it := xar.iterator(&tcc.current_blocks); block, i in xar.iterate_by_ptr(&it) {
 		if i == 0 {
@@ -30,7 +31,7 @@ _compile_abi_lower :: proc(tcc: ^Thread_Compile_Context) {
 		}
 
 		for value_id := block.first; value_id != VALUE_NONE; {
-			value : Compile_Value = xar.get(&tcc.current_values, value_id)
+			value : ^Compile_Value = xar.get_ptr(&tcc.current_values, value_id)
 
 			#partial switch value.operator {
 			case .Argument:
@@ -42,7 +43,8 @@ _compile_abi_lower :: proc(tcc: ^Thread_Compile_Context) {
 				assert(location.register != REGISTER_INVALID)
 				assert(.Indirect not_in location.flags)
 
-
+				value.immediate = u64(location.register)
+				value.operator  = .Copy_From_Reg
 			case .Return:
 			}
 

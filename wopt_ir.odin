@@ -15,6 +15,8 @@ Operator :: enum {
 
 	Ir_Begin = Argument,
 	Ir_End   = Return,
+
+	Copy_From_Reg, // Copy_From_Reg <type> {register}
 }
 
 Value_Id :: distinct u32
@@ -28,6 +30,8 @@ Value :: struct {
 
 	arguments: []Value_Id,
 	immediate: u64, // just 8-bytes of memory, might be expanded for SIMD
+
+	register_info: ^Register_Information,
 }
 
 Block_Kind :: enum {
@@ -120,8 +124,9 @@ ssa_write_value :: proc(p: ^SSA_Printer, body: Function_Body, value_id: Value_Id
 
 	@(static)
 	LUT := #partial [Operator]Print_Flags{
-		.Argument = { .Immediate },
-		.Const32  = { .Immediate },
+		.Argument      = { .Immediate },
+		.Const32       = { .Immediate },
+		.Copy_From_Reg = { .Immediate },
 
 		.Return = { .Args },
 	}

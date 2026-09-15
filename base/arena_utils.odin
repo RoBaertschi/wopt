@@ -36,6 +36,58 @@ arena_push_slice :: proc(a: ^Arena, $T: typeid/[]$E, #any_int len: int, loc := #
 	return arena_push_slice_aligned(a, T, len, align_of(E), loc)
 }
 
+arena_push_soa_aligned :: proc(a: ^Arena, $T: typeid/#soa[]$E, #any_int len, alignment: int) -> (array: T) {
+	if 0 >= len {
+		return
+	}
+
+	footer := runtime.raw_soa_footer(&array)
+
+	if size_of(E) == 0 {
+		footer.len = len
+		return
+	}
+
+	max_align := max(alignment, align_of(E))
+
+	ti := type_info_of(typeid_of(T))
+	ti = runtime.type_info_base(ti)
+	si := &ti.variant.(runtime.Type_Info_Struct)
+
+	field_count := uintptr(len(E) when intrinsics.type_is_array(E) else intrinsics.type_struct_field_count(E))
+
+	total_size := 0
+	for i in 0..<field_count {
+		type := si.types[i].variant.(runtime.Type_Info_Multi_Pointer).elem
+		total_size += type.size * len
+		total_size = runtime.align_forward_int(total_size, max_align)
+	}
+
+	new_bytes := _arena_push_aligned(a, uint(total_size), uint(max_align))
+
+	if new_bytes == nil {
+		return
+	}
+	new_data := raw_data(new_bytes)
+
+	offset := 0
+	for i in 0..<field_count {
+		type := si.types[i].variant.(runtime.Type_Info_Multi_Pointer).elem
+
+		offset = runtime.align_forward_int(offset, max_align)
+
+		([^]rawptr)(&array)[i] = rawptr(uintptr(new_data) + uintptr(offset))
+		offset += type.size * len
+	}
+	footer.len = len
+
+	return
+}
+
+arena_push_soa_slice :: proc(a: ^Arena, $T: typeid/#soa[]$E, len: int) -> (array: T) {
+	return arena_push_soa_aligned(a, T, len, align_of(E))
+}
+
 // `make_aligned` allocates and initializes a slice. Like `new`, the second argument is a type, not a value.
 // Unlike `new`, `make`'s return value is the same as the type of its argument, not a pointer to it.
 //

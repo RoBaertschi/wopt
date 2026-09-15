@@ -55,6 +55,7 @@ Function :: struct {
 	compile_body: Function_Body,
 
 	abi_result: ^ABI_Result,
+	register_info: ^Register_Information,
 }
 
 // Add a new function declaration to the module `m`.

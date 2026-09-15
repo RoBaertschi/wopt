@@ -201,6 +201,17 @@ ssa_verify_function :: proc(tbctx: ^Thread_Build_Context, function_id: Function_
 							)
 						}
 					}
+				case .Copy_From_Reg:
+					if Register(value.immediate) == REGISTER_INVALID {
+						errorf(
+							tbctx,
+							&errors,
+							function_id,
+							"invalid register %v(immediate %v)",
+							Register(value.immediate),
+							value.immediate,
+						)
+					}
 				}
 			}
 		}
