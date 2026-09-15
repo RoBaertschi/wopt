@@ -95,6 +95,12 @@ _abi_value_from_type_id :: proc(arena: ^B.Arena, m: ^Module, type_id: Type_Id) -
 	return _abi_value_from_type(arena, m, type_get(m, type_id))
 }
 
+ABI_Result :: struct {
+	parameters: []ABI_Value,
+	result:     ABI_Value,
+	config:     ABI_Config,
+}
+
 usage :: proc() {
 	when false {
 		abi_classify :: proc "c" (data: rawptr, parameters: []ABI_Value, result: ABI_Value) -> (clobbers: Register_Set) {

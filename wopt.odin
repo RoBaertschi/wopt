@@ -53,6 +53,8 @@ Function :: struct {
 	//              to not have to copy all of it
 	build_body:   Function_Body,
 	compile_body: Function_Body,
+
+	abi_result: ^ABI_Result,
 }
 
 // Add a new function declaration to the module `m`.
