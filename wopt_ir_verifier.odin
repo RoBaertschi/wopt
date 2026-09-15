@@ -136,6 +136,15 @@ ssa_verify_function :: proc(tbctx: ^Thread_Build_Context, function_id: Function_
 
 				value := function.build_body.values[value_id]
 				switch value.operator {
+				case .Invalid:
+				  temp := B.TEMP_ALLOCATOR_GUARD()
+					errorf(
+						tbctx,
+						&errors,
+						function_id,
+						"invalid value %v",
+						value_id_string(module, value_id, temp),
+					)
 				case .Argument:
 					param_index := int(value.immediate)
 					if len(function.parameters) <= param_index {

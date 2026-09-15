@@ -6,6 +6,8 @@ import "core:io"
 // SSA definition, based on the Go SSA: https://github.com/golang/go/tree/master/src/cmd/compile/internal/ssa
 
 Operator :: enum {
+	Invalid,
+
 	Argument,      // Argument <type> {param_index}
 	Init_Memory,   // Init_Memory <mem>
 	Const32,       // Const32 <i32> {immediate}
