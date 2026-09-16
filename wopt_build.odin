@@ -139,7 +139,7 @@ _build_value :: proc(tbctx: ^Thread_Build_Context, value: Value) -> (value_id: V
 	value_ptr, _ := xar.push_back_elem_and_get_ptr(&tbctx.values, value)
 	value_ptr.id  = value_id
 
-	value_ptr.register_info = &operator_information[value_ptr.operator].register_information
+	value_ptr.register_information = &operator_information[value_ptr.operator].register_information
 
 	xar.push_back(&tbctx.block_values, value_id)
 	return

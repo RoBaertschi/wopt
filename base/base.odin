@@ -1,5 +1,6 @@
 package wasim_base
 
+import "base:runtime"
 import "core:sync"
 import "core:mem/virtual"
 import "core:math/linalg"
@@ -63,6 +64,30 @@ xar_push_copy :: proc(arena: ^Arena, array: ^xar.Array($T, $SHIFT)) -> (values: 
 
 	for it := xar.iterator(array); value, i in xar.iterate_by_val(&it) {
 		values[i] = value
+	}
+
+	return
+}
+
+xar_append_many :: proc(array: ^xar.Array($T, $SHIFT), values: []T) {
+	xar_reserve(array, uint(array.len) + len(values))
+
+	for value, i in values {
+		chunk_idx, elem_idx, _ := xar._meta_get(SHIFT, uint(i + array.len))
+		array.chunks[chunk_idx][elem_idx] = value
+	}
+
+	array.len += len(values)
+}
+
+xar_reserve :: proc(array: ^xar.Array($T, $SHIFT), items: uint, loc := #caller_location) -> (err: runtime.Allocator_Error) {
+	chunk_idx, _, _ := xar._meta_get(SHIFT, items)
+
+	for &chunk, i in array.chunks[:chunk_idx+1] {
+		if chunk == nil {
+			chunk_cap := 1 << (uint(i) + SHIFT)
+			chunk = make([^]T, chunk_cap, array.allocator, loc) or_return
+		}
 	}
 
 	return

@@ -43,9 +43,31 @@ _compile_abi_lower :: proc(tcc: ^Thread_Compile_Context) {
 				assert(location.register != REGISTER_INVALID)
 				assert(.Indirect not_in location.flags)
 
-				value.immediate = u64(location.register)
-				value.operator  = .Copy_From_Reg
+				_tcc_value_replace_op_immediate(
+					tcc,
+					value_id,
+					.Copy_From_Reg,
+					u64(location.register),
+				)
 			case .Return:
+				if 0 < len(value.arguments) {
+					abi_value := result.result
+					// TODO(robin, 20260915-121028): support more types
+					assert(abi_value.type.kind == .I32)
+					location := abi_value.location
+					// TODO(robin, 20260915-121028): support more location
+					assert(location.register != REGISTER_INVALID)
+					assert(.Indirect not_in location.flags)
+
+					inputs := B.arena_push_soa_slice(tcc.permanent_arena, #soa[]Register_Constraint, 1)
+
+					inputs[0].allowed = { int(location.register) }
+
+					value.register_information  = B.arena_push(tcc.permanent_arena, Register_Information)
+					value.register_information^ = {
+						inputs = inputs,
+					}
+				}
 			}
 
 			value_id = value.block_next

@@ -258,6 +258,8 @@ main :: proc() {
     build_function_end(tbctx)
   }
 
+  compile(m, func_id)
+
   p := SSA_Printer {
   	writer = os.to_writer(os.stdout),
    	module = m,

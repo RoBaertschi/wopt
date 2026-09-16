@@ -31,7 +31,7 @@ Value :: struct {
 	arguments: []Value_Id,
 	immediate: u64, // just 8-bytes of memory, might be expanded for SIMD
 
-	register_info: ^Register_Information,
+	register_information: ^Register_Information,
 }
 
 Block_Kind :: enum {
@@ -119,6 +119,64 @@ ssa_write_value :: proc(p: ^SSA_Printer, body: Function_Body, value_id: Value_Id
 		return
 	}
 
+	write_register_information :: proc(p: ^SSA_Printer, info: Register_Information) -> (err: io.Error) {
+
+		write_register_set :: proc(p: ^SSA_Printer, set: Register_Set) -> (err: io.Error) {
+			comma := ""
+
+			for register in set {
+				io.write_string(p.writer, comma) or_return
+				io.write_int(p.writer, register) or_return
+				comma = ", "
+			}
+
+			return
+		}
+
+		io.write_string(p.writer, " c:") or_return
+		write_register_set(p, info.clobbers) or_return
+
+		if 0 < len(info.inputs) {
+			io.write_string(p.writer, " in:") or_return
+			comma := ""
+			for input, i in info.inputs {
+				io.write_string(p.writer, comma) or_return
+				io.write_rune(p.writer, '[') or_return
+				io.write_int(p.writer, i) or_return
+				io.write_string(p.writer, "] a:") or_return
+				write_register_set(p, input.allowed) or_return
+
+				if input.pin != 0 {
+					io.write_string(p.writer, " p:") or_return
+					io.write_u64(p.writer, u64(input.pin)) or_return
+				}
+
+				comma = ", "
+			}
+		}
+
+		if 0 < len(info.outputs) {
+			io.write_string(p.writer, " out:") or_return
+			comma := ""
+			for output, i in info.outputs {
+				io.write_string(p.writer, comma) or_return
+				io.write_rune(p.writer, '[') or_return
+				io.write_int(p.writer, i) or_return
+				io.write_string(p.writer, "] a:") or_return
+				write_register_set(p, output.allowed) or_return
+
+				if output.pin != 0 {
+					io.write_string(p.writer, " p:") or_return
+					io.write_u64(p.writer, u64(output.pin)) or_return
+				}
+
+				comma = ", "
+			}
+		}
+
+		return
+	}
+
 	Print_Flag  :: enum { Args, Immediate }
 	Print_Flags :: bit_set[Print_Flag]
 
@@ -138,6 +196,14 @@ ssa_write_value :: proc(p: ^SSA_Printer, body: Function_Body, value_id: Value_Id
 
 	if .Args in print_flags {
 		write_args(p, value)
+	}
+
+	if value.register_information != nil &&
+		value.register_information.clobbers != {} &&
+		len(value.register_information.inputs) != 0 &&
+		len(value.register_information.outputs) != 0 {
+
+		write_register_information(p, value.register_information^)
 	}
 
 	io.write_rune(p.writer, '\n') or_return
