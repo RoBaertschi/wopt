@@ -137,13 +137,13 @@ ssa_write_value :: proc(p: ^SSA_Printer, body: Function_Body, value_id: Value_Id
 		write_register_set(p, info.clobbers) or_return
 
 		if 0 < len(info.inputs) {
-			io.write_string(p.writer, " in:") or_return
+			io.write_string(p.writer, " in:{") or_return
 			comma := ""
 			for input, i in info.inputs {
 				io.write_string(p.writer, comma) or_return
 				io.write_rune(p.writer, '[') or_return
 				io.write_int(p.writer, i) or_return
-				io.write_string(p.writer, "] a:") or_return
+				io.write_string(p.writer, "] = a:") or_return
 				write_register_set(p, input.allowed) or_return
 
 				if input.pin != 0 {
@@ -153,6 +153,7 @@ ssa_write_value :: proc(p: ^SSA_Printer, body: Function_Body, value_id: Value_Id
 
 				comma = ", "
 			}
+			io.write_rune(p.writer, '}') or_return
 		}
 
 		if 0 < len(info.outputs) {
@@ -199,9 +200,9 @@ ssa_write_value :: proc(p: ^SSA_Printer, body: Function_Body, value_id: Value_Id
 	}
 
 	if value.register_information != nil &&
-		value.register_information.clobbers != {} &&
-		len(value.register_information.inputs) != 0 &&
-		len(value.register_information.outputs) != 0 {
+		!(value.register_information.clobbers == {} &&
+		len(value.register_information.inputs) == 0 &&
+		len(value.register_information.outputs) == 0) {
 
 		write_register_information(p, value.register_information^)
 	}
@@ -261,6 +262,14 @@ ssa_write_function_build_body :: proc(p: ^SSA_Printer, function_id: Function_Id)
 	function := function_get(p.module, function_id)
 	ssa_write_function_header(p, function) or_return
 	ssa_write_body(p, function.build_body) or_return
+
+	return
+}
+
+ssa_write_function_compile_body :: proc(p: ^SSA_Printer, function_id: Function_Id) -> (err: io.Error) {
+	function := function_get(p.module, function_id)
+	ssa_write_function_header(p, function) or_return
+	ssa_write_body(p, function.compile_body) or_return
 
 	return
 }

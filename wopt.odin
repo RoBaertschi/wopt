@@ -267,7 +267,7 @@ main :: proc() {
     	indent = "\t",
     },
   }
-  ssa_write_function_build_body(&p, func_id)
+  ssa_write_function_compile_body(&p, func_id)
 
 	// fmt.println("Types:")
 	// for it := xar.iterator(&m.types); type in xar.iterate_by_val(&it) {

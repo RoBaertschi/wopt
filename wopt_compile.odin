@@ -16,6 +16,7 @@ Compile_Value :: struct {
 
 Compile_Block :: struct {
 	first, last: Value_Id,
+	value_count: int,
 
 	id:      Block_Id,
 	kind:    Block_Kind,
@@ -38,14 +39,18 @@ Thread_Compile_Context :: struct {
 _tcc_block_add_value :: proc(tcc: ^Thread_Compile_Context, block: ^Compile_Block, value: ^Compile_Value) {
 	if block.last != VALUE_NONE {
 		last_value            := xar.get_ptr(&tcc.current_values, block.last)
-		last_value.block_next  = last_value.id
+		last_value.block_next  = value.id
+	} else {
+		block.first = value.id
 	}
 
 	block.last       = value.id
 	value.block_next = VALUE_NONE
+
+	block.value_count += 1
 }
 
-_tcc_add_block :: proc(tcc: ^Thread_Compile_Context, block: Compile_Block) {
+_tcc_add_block :: proc(tcc: ^Thread_Compile_Context, block: Compile_Block) -> (block_ptr: ^Compile_Block) {
 	block := block
 
 	if block.id == 0 {
@@ -53,7 +58,8 @@ _tcc_add_block :: proc(tcc: ^Thread_Compile_Context, block: Compile_Block) {
 	} else {
 		assert(block.id == Block_Id(xar.len(tcc.current_blocks)))
 	}
-	xar.push_back(&tcc.current_blocks, block)
+	block_ptr, _ = xar.push_back_elem_and_get_ptr(&tcc.current_blocks, block)
+	return
 }
 
 _tcc_value_replace_op_immediate :: proc(
@@ -91,6 +97,7 @@ _tcc_value_replace_op_immediate :: proc(
 // 	}
 // }
 
+// TODO(robin, 20260917-180827): do major cleanup to remove this weird roundtrip
 compile :: proc(m: ^Module, function_id: Function_Id, loc := #caller_location) {
 	function := function_get_ptr(m, function_id)
 	old_flags := sync.atomic_or_explicit(&function.flags, Function_Flags { ._In_Progress }, .Acquire)
@@ -111,6 +118,15 @@ compile :: proc(m: ^Module, function_id: Function_Id, loc := #caller_location) {
 
 	tcc.function = function
 
+	for value in function.build_body.values {
+		compile_value := Compile_Value {
+			value = value,
+		}
+
+		assert(value.id == Value_Id(xar.len(tcc.current_values))) // TODO(robin): remove
+		xar.push_back(&tcc.current_values, compile_value)
+	}
+
 	for block in function.build_body.blocks {
 		compile_block := Compile_Block {
 			id      = block.id,
@@ -118,10 +134,49 @@ compile :: proc(m: ^Module, function_id: Function_Id, loc := #caller_location) {
 			control = block.control,
 		}
 
-		_tcc_add_block(
+		compile_block_ptr := _tcc_add_block(
 			tcc,
 			compile_block,
 		)
+
+		for value in block.values {
+			_tcc_block_add_value(
+				tcc,
+				compile_block_ptr,
+				xar.get_ptr(&tcc.current_values, value),
+			)
+		}
+	}
+
+	_compile_abi_lower(tcc)
+
+
+	compile_body := &tcc.function.compile_body
+
+	compile_body.start = tcc.function.build_body.start
+	compile_body.blocks = B.arena_push_make(tcc.permanent_arena, []Block, xar.len(tcc.current_blocks))
+	compile_body.values = B.arena_push_make(tcc.permanent_arena, []Value, xar.len(tcc.current_values))
+
+	for it := xar.iterator(&tcc.current_blocks); compile_block, i in xar.iterate_by_ptr(&it) {
+		block := &compile_body.blocks[i]
+
+		block.values = B.arena_push_make(tcc.permanent_arena, []Value_Id, compile_block.value_count)
+
+		for value_id, j := compile_block.first, 0; value_id != VALUE_NONE; j += 1 {
+			value := xar.get_ptr(&tcc.current_values, value_id)
+
+			block.values[j] = value_id
+
+			value_id = value.block_next
+		}
+
+		block.id      = compile_block.id
+		block.kind    = compile_block.kind
+		block.control = compile_block.control
+	}
+
+	for it := xar.iterator(&tcc.current_values); compile_value, i in xar.iterate_by_ptr(&it) {
+		compile_body.values[i] = compile_value.value
 	}
 
 	// Done
