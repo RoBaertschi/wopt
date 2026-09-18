@@ -157,15 +157,15 @@ compile :: proc(m: ^Module, function_id: Function_Id, loc := #caller_location) {
 	compile_body.blocks = B.arena_push_make(tcc.permanent_arena, []Block, xar.len(tcc.current_blocks))
 	compile_body.values = B.arena_push_make(tcc.permanent_arena, []Value, xar.len(tcc.current_values))
 
-	for it := xar.iterator(&tcc.current_blocks); compile_block, i in xar.iterate_by_ptr(&it) {
-		block := &compile_body.blocks[i]
+	for it := xar.iterator(&tcc.current_blocks); compile_block, compile_block_index in xar.iterate_by_ptr(&it) {
+		block := &compile_body.blocks[compile_block_index]
 
 		block.values = B.arena_push_make(tcc.permanent_arena, []Value_Id, compile_block.value_count)
 
-		for value_id, j := compile_block.first, 0; value_id != VALUE_NONE; j += 1 {
+		for value_id, block_values_index := compile_block.first, 0; value_id != VALUE_NONE; block_values_index += 1 {
 			value := xar.get_ptr(&tcc.current_values, value_id)
 
-			block.values[j] = value_id
+			block.values[block_values_index] = value_id
 
 			value_id = value.block_next
 		}

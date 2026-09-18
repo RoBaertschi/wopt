@@ -23,7 +23,7 @@ _compile_abi_lower :: proc(tcc: ^Thread_Compile_Context) {
 	tcc.function.abi_result = result
 	tcc.function.register_info = _register_information_from_abi_result(tcc.permanent_arena, result^)
 
-	// TODO(robin, 20260915-170105): validate abi result
+	// TODO(robin, 20260915-170105): validate abi result, remember, untrusted input
 
 	for it := xar.iterator(&tcc.current_blocks); block, i in xar.iterate_by_ptr(&it) {
 		if i == 0 {
